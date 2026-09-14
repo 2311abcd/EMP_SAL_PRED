@@ -38,14 +38,19 @@ understand *what* would move the needle. This project solves that by:
 | Improvement Suggestions | Plain-language, model-based estimate of impact |
 | Feature Importance | Personalized dollar impact per factor, recalculated for every profile |
 | PDF Report Download | One-click, clean PDF summary of the prediction and insights |
+| Save & Compare Profiles | Save predicted profiles to the browser (local storage) and compare 2+ side by side |
+| Broad Category Coverage | 25 occupations, 16 countries, 14 industries (up from 10 / 6 / 6) |
 
 ## 4. Technology Stack
 
 **Backend / ML:** Python, Pandas, NumPy, Scikit-learn, Joblib, FastAPI, Pydantic, ReportLab (PDF generation)
 **Frontend:** HTML, CSS, Vanilla JavaScript (`fetch()` — no frameworks)
+**Testing:** Pytest, FastAPI's `TestClient` (via `httpx`)
 
-No React, no Node.js, no databases, no Docker, no authentication, and no
-external AI APIs are used anywhere in this project.
+No React, no Node.js, no backend database, no Docker, no authentication, and
+no external AI APIs are used anywhere in this project. "Save & Compare
+Profiles" uses the browser's own `localStorage` — nothing is sent to or
+stored on the server.
 
 ## 5. Machine Learning Workflow
 
@@ -113,12 +118,23 @@ Actual results from `train_model.py` (your numbers may vary slightly since
 
 | Model | MAE | RMSE | R² Score |
 |---|---|---|---|
-| Linear Regression | ~10,999 | ~14,548 | ~0.908 |
-| Random Forest | ~9,662 | ~13,073 | ~0.926 |
-| **Gradient Boosting (best)** | **~9,459** | **~12,760** | **~0.929** |
+| **Linear Regression (best)** | **~11,035** | **~14,221** | **~0.912** |
+| Random Forest (depth-capped) | ~11,944 | ~15,814 | ~0.892 |
+| Gradient Boosting | ~12,584 | ~16,585 | ~0.881 |
 
-The best model is picked automatically based on the highest R² Score and
-saved to `best_model.pkl`.
+Your exact numbers will differ slightly after retraining (random seed keeps
+it close, not identical), and the winner **can change** depending on your
+scikit-learn version and the dataset size — the pipeline always picks
+whichever model actually scores highest on your machine, automatically.
+
+> **Note on model size:** `RandomForestRegressor` is deliberately capped
+> (`max_depth=18`, `min_samples_leaf=3`, `n_estimators=150`) instead of left
+> unbounded. With the expanded category list (25 occupations × 16 countries
+> × 14 industries, one-hot encoded), an uncapped Random Forest produced a
+> **~170 MB** `best_model.pkl` for a barely-better R² — not worth it for a
+> project meant to run and be shared easily. If you retrain and Random
+> Forest or Gradient Boosting wins on your machine, that's expected and
+> fine; if the `.pkl` file balloons again, tighten `max_depth` further.
 
 ## 8. API Endpoints
 
@@ -200,7 +216,7 @@ Response:
 ```json
 {
   "supported": true,
-  "best_model_name": "Gradient Boosting",
+  "best_model_name": "Linear Regression",
   "predicted_salary": 72500.0,
   "top_factors": [
     { "feature": "country", "impact": 18320.5, "direction": "positive", "your_value": "USA", "typical_value": "Canada" },
@@ -311,6 +327,16 @@ pip install -r requirements.txt
    ```
    http://127.0.0.1:8000/docs
    ```
+10. (Optional) Run the automated test suite:
+    ```bash
+    pytest -v
+    ```
+    This runs `tests/test_dataset.py`, `tests/test_preprocessing.py`,
+    `tests/test_prediction.py`, and `tests/test_api.py` — covering the
+    dataset schema, the cleaning/preprocessing logic, the trained pipeline's
+    predictions, and every API endpoint (including a regression test that
+    specifically re-creates the PDF-report bug with an `&` in the industry
+    name, to make sure it stays fixed).
 
 ## 13. Project Structure
 
@@ -328,7 +354,13 @@ Employee-Salary-Prediction/
 ├── main.py                 # FastAPI backend (all API endpoints)
 ├── index.html              # Single-page frontend
 ├── style.css               # Styling
-├── script.js               # Frontend logic (fetch calls, validation, rendering)
+├── script.js                # Frontend logic (fetch calls, validation, rendering, chart, saved profiles)
+│
+├── tests/                  # Automated test suite (pytest)
+│   ├── test_dataset.py         # Dataset schema, ranges, category coverage
+│   ├── test_preprocessing.py   # Cleaning logic + ColumnTransformer shape
+│   ├── test_prediction.py      # Trained pipeline + main.py helper functions
+│   └── test_api.py             # End-to-end FastAPI endpoint tests (incl. PDF bug regression test)
 │
 ├── requirements.txt
 └── README.md
@@ -365,14 +397,79 @@ python train_model.py
 
 Then start the server again with `uvicorn main:app --reload`.
 
-## 16. Future Improvements
+**PDF report download fails / button does nothing / 500 error on `/generate-report`**
 
-- Add more occupations, countries, and industries for broader coverage.
-- Allow the user to save and compare multiple profiles (would require
-  simple local storage or a lightweight database).
-- Add a chart (e.g. salary vs. experience trend line) using a small
-  charting library.
-- Replace the synthetic dataset with a real-world salary survey dataset
-  once one with a matching schema is found.
-- Add unit tests for the preprocessing and prediction logic.
+Two real, separate bugs in earlier versions of this project could both cause
+this, and both are now fixed:
+
+1. **Root cause (the likely actual bug you hit):** `compute_personalized_factors()`
+   builds a copy of your profile and swaps in the "typical" reference value
+   for one feature at a time, using pandas' `.at[]`. `age` is an integer in
+   the form, so its column in the DataFrame was `int64` — but the "typical"
+   reference value for age (e.g. `37.49`, an average) is a **float**. On
+   modern pandas (2.x/3.x), writing a float into an `int64` column via
+   `.at[]`/`.loc[]` raises `TypeError: Invalid value '37.49' for dtype
+   'int64'` instead of silently upcasting like older pandas did. This hits
+   `/generate-report` **and** `/feature-importance` on any fresh
+   `pip install` that pulls in a recent pandas. Fixed by explicitly casting
+   all numeric feature columns to `float64` in `employee_to_dataframe()`.
+2. `reportlab`'s `Paragraph` treats its input text as a small XML-like
+   markup language, so any profile field containing `&`, `<`, or `>` (for
+   example the industry "Media & Entertainment") made PDF generation crash.
+   Fixed by escaping every dynamic value with `xml.sax.saxutils.escape()`
+   before it reaches a `Paragraph`.
+
+Both are covered by dedicated regression tests in `tests/test_prediction.py`
+and `tests/test_api.py` so they can't silently come back. If you still see
+this error after pulling the latest `main.py`, check the terminal running
+`uvicorn` — the fix also adds proper logging, so the real underlying error
+will now be printed there instead of just a generic 500.
+
+## 16. Completed in This Update
+
+The items below were originally listed as "Future Improvements" and are now
+implemented:
+
+- ✅ **More occupations, countries, and industries** — expanded from 10/6/6
+  to 25/16/14. `generate_dataset.py`, `main.py`'s `VALID_*` lists, and the
+  `<select>` options in `index.html` were all updated together, and the
+  model was retrained on the larger dataset.
+- ✅ **Save and compare multiple profiles** — implemented with the browser's
+  `localStorage` (no server-side database needed, per the "lightweight"
+  option mentioned). Saved profiles persist across page reloads on the same
+  browser/device; a "Compare selected" button builds a side-by-side table.
+- ✅ **Unit tests** — `tests/test_dataset.py`, `tests/test_preprocessing.py`,
+  `tests/test_prediction.py`, and `tests/test_api.py`, covering the dataset,
+  the cleaning/preprocessing logic, the trained pipeline, and every API
+  endpoint.
+
+## 17. Remaining Future Improvement: Real-World Dataset
+
+**Replacing the synthetic dataset with a real-world salary survey dataset**
+is intentionally left as a manual step rather than done automatically here,
+for an honest reason: no public dataset was verified to have this project's
+exact schema (age, education level, occupation, years of experience, hours
+per week, gender, country, industry → salary), and swapping in a
+mismatched one silently would make the "realistic, explainable patterns"
+claim in `generate_dataset.py` untrue.
+
+If you want to do this yourself, a reasonable path is:
+
+1. Look at Kaggle datasets such as *"Salary Prediction of Data Professions"*,
+   *"Data Science Job Salaries"*, or a national salary-survey release (e.g.
+   from a government statistics office) — check the columns first.
+2. Rename/map its columns to match `FEATURE_COLUMNS` in `train_model.py`
+   (`age`, `years_of_experience`, `hours_per_week`, `education_level`,
+   `occupation`, `gender`, `country`, `industry`, `salary`). If a column is
+   missing (many real datasets don't have `hours_per_week`, for example),
+   either drop it from `NUMERIC_FEATURES`/`main.py`'s `EmployeeData` model
+   consistently everywhere, or impute a reasonable constant.
+3. Update `VALID_OCCUPATIONS` / `VALID_COUNTRIES` / `VALID_INDUSTRIES` in
+   `main.py` and the `<select>` options in `index.html` to match the real
+   dataset's actual category values (they won't match the synthetic list).
+4. Save the new file as `dataset.csv` (same filename, same shape) and run
+   `python train_model.py` — everything downstream (API, frontend, PDF
+   report, tests) keeps working unchanged as long as the column names match.
+5. Re-run `pytest` — `tests/test_dataset.py` will immediately tell you if
+   the new file's schema doesn't match what the rest of the project expects.
 # EMP_SAL_PRED

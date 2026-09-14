@@ -1,20 +1,20 @@
 {
-    "best_model_name": "Gradient Boosting",
+    "best_model_name": "Linear Regression",
     "all_model_results": {
         "Linear Regression": {
-            "MAE": 10999.17,
-            "RMSE": 14547.83,
-            "R2 Score": 0.9082
+            "MAE": 11035.24,
+            "RMSE": 14220.61,
+            "R2 Score": 0.9124
         },
         "Random Forest": {
-            "MAE": 9658.3,
-            "RMSE": 13073.05,
-            "R2 Score": 0.9258
+            "MAE": 11945.12,
+            "RMSE": 15813.98,
+            "R2 Score": 0.8916
         },
         "Gradient Boosting": {
-            "MAE": 9459.26,
-            "RMSE": 12759.55,
-            "R2 Score": 0.9294
+            "MAE": 12584.19,
+            "RMSE": 16585.17,
+            "R2 Score": 0.8808
         }
     },
     "numeric_features": [
@@ -29,52 +29,19 @@
         "country",
         "industry"
     ],
-    "feature_importance": [
-        {
-            "feature": "country",
-            "importance": 0.5201
-        },
-        {
-            "feature": "education_level",
-            "importance": 0.2261
-        },
-        {
-            "feature": "industry",
-            "importance": 0.1852
-        },
-        {
-            "feature": "occupation",
-            "importance": 0.0504
-        },
-        {
-            "feature": "years_of_experience",
-            "importance": 0.0101
-        },
-        {
-            "feature": "hours_per_week",
-            "importance": 0.0073
-        },
-        {
-            "feature": "age",
-            "importance": 0.0007
-        },
-        {
-            "feature": "gender",
-            "importance": 0.0001
-        }
-    ],
-    "residual_std": 12759.02,
-    "average_salary": 125018.01,
+    "feature_importance": [],
+    "residual_std": 14220.56,
+    "average_salary": 114555.3,
     "reference_values": {
-        "age": 37.77,
-        "years_of_experience": 9.89,
-        "hours_per_week": 42.01,
+        "age": 37.49,
+        "years_of_experience": 9.77,
+        "hours_per_week": 42.06,
         "education_level": "Bachelor's",
-        "occupation": "Financial Analyst",
-        "gender": "Male",
-        "country": "Canada",
-        "industry": "Manufacturing"
+        "occupation": "Customer Support",
+        "gender": "Female",
+        "country": "France",
+        "industry": "Pharmaceuticals"
     },
-    "training_rows": 4762,
-    "testing_rows": 1191
+    "training_rows": 9563,
+    "testing_rows": 2391
 }

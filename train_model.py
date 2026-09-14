@@ -149,7 +149,10 @@ print("=" * 60)
 
 models = {
     "Linear Regression": LinearRegression(),
-    "Random Forest": RandomForestRegressor(n_estimators=200, random_state=42, n_jobs=-1),
+    "Random Forest": RandomForestRegressor(
+        n_estimators=150, max_depth=18, min_samples_leaf=3,
+        random_state=42, n_jobs=-1,
+    ),
     "Gradient Boosting": GradientBoostingRegressor(random_state=42),
 }
 

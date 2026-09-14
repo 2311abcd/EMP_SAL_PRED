@@ -6,6 +6,8 @@ fastapi>=0.104.0
 pydantic>=2.4.0
 uvicorn>=0.23.0
 reportlab>=4.0.0
+pytest>=7.4.0
+httpx>=0.25.0
 
 # NOTE ON VERSIONS:
 # best_model.pkl is a pickled scikit-learn Pipeline. Pickle files are only

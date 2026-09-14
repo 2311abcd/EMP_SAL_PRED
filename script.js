@@ -20,9 +20,23 @@ const downloadReportBtn = document.getElementById("download-report-btn");
 const downloadReportLabel = document.getElementById("download-report-label");
 const reportError = document.getElementById("report-error");
 
+const saveProfileBtn = document.getElementById("save-profile-btn");
+const saveProfileLabel = document.getElementById("save-profile-label");
+const saveSuccess = document.getElementById("save-success");
+
+const savedEmpty = document.getElementById("saved-empty");
+const savedList = document.getElementById("saved-list");
+const compareBtn = document.getElementById("compare-btn");
+const compareTableWrap = document.getElementById("compare-table-wrap");
+const compareTable = document.getElementById("compare-table");
+
 // Keeps the last submitted, validated employee data so the
 // What-If simulator can reuse it without re-reading the form.
 let lastEmployeeData = null;
+let lastPredictionResult = null;
+
+const SAVED_PROFILES_KEY = "salaryApp.savedProfiles";
+const MAX_SAVED_PROFILES = 12;
 
 /* -------------------------------------------------------------------- */
 /*  Helper: read and validate the form                                   */
@@ -175,6 +189,12 @@ function renderPredictionResult(result) {
 
     // Animate the headline number counting up once the card is visible
     animateNumberTo(salaryEl, result.predicted_salary);
+
+    // A fresh prediction always starts as "not yet saved" for this profile
+    lastPredictionResult = result;
+    saveProfileBtn.classList.remove("saved");
+    saveProfileLabel.textContent = "Save this profile";
+    saveSuccess.textContent = "";
 }
 
 /* -------------------------------------------------------------------- */
@@ -342,3 +362,179 @@ function formatFeatureName(name) {
         .map(word => word.charAt(0).toUpperCase() + word.slice(1))
         .join(" ");
 }
+
+/* -------------------------------------------------------------------- */
+/*  Saved profiles (local storage) + compare                             */
+/* -------------------------------------------------------------------- */
+
+function loadSavedProfiles() {
+    try {
+        const raw = localStorage.getItem(SAVED_PROFILES_KEY);
+        return raw ? JSON.parse(raw) : [];
+    } catch (error) {
+        console.error("Could not read saved profiles:", error);
+        return [];
+    }
+}
+
+function persistSavedProfiles(profiles) {
+    try {
+        localStorage.setItem(SAVED_PROFILES_KEY, JSON.stringify(profiles));
+    } catch (error) {
+        console.error("Could not save profiles:", error);
+    }
+}
+
+function renderSavedProfiles() {
+    const profiles = loadSavedProfiles();
+
+    if (profiles.length === 0) {
+        savedEmpty.classList.remove("hidden");
+        savedList.innerHTML = "";
+        compareBtn.disabled = true;
+        compareTableWrap.classList.add("hidden");
+        return;
+    }
+
+    savedEmpty.classList.add("hidden");
+    savedList.innerHTML = "";
+
+    profiles.forEach(profile => {
+        const card = document.createElement("div");
+        card.className = "saved-card" + (profile.selected ? " selected" : "");
+        card.innerHTML = `
+            <div class="saved-card-top">
+                <span class="saved-card-name">${escapeHtml(profile.name)}</span>
+            </div>
+            <div class="saved-card-salary">${formatCurrency(profile.prediction.predicted_salary)}</div>
+            <div class="saved-card-meta">
+                ${escapeHtml(profile.employee.occupation)} · ${escapeHtml(profile.employee.country)}<br>
+                ${profile.employee.years_of_experience} yrs exp · ${escapeHtml(profile.employee.education_level)}
+            </div>
+            <div class="saved-card-actions">
+                <label class="saved-card-checkbox">
+                    <input type="checkbox" data-id="${profile.id}" class="compare-checkbox" ${profile.selected ? "checked" : ""}>
+                    Compare
+                </label>
+                <button type="button" class="saved-card-remove" data-id="${profile.id}">Remove</button>
+            </div>
+        `;
+        savedList.appendChild(card);
+    });
+
+    savedList.querySelectorAll(".compare-checkbox").forEach(box => {
+        box.addEventListener("change", function () {
+            toggleProfileSelected(this.dataset.id, this.checked);
+        });
+    });
+
+    savedList.querySelectorAll(".saved-card-remove").forEach(btn => {
+        btn.addEventListener("click", function () {
+            removeSavedProfile(this.dataset.id);
+        });
+    });
+
+    const selectedCount = profiles.filter(p => p.selected).length;
+    compareBtn.disabled = selectedCount < 2;
+}
+
+function escapeHtml(value) {
+    const div = document.createElement("div");
+    div.textContent = String(value);
+    return div.innerHTML;
+}
+
+function toggleProfileSelected(id, selected) {
+    const profiles = loadSavedProfiles();
+    const updated = profiles.map(p => (p.id === id ? { ...p, selected } : p));
+    persistSavedProfiles(updated);
+    renderSavedProfiles();
+    if (compareTable.innerHTML) {
+        buildCompareTable();
+    }
+}
+
+function removeSavedProfile(id) {
+    const profiles = loadSavedProfiles().filter(p => p.id !== id);
+    persistSavedProfiles(profiles);
+    renderSavedProfiles();
+    buildCompareTable();
+}
+
+saveProfileBtn.addEventListener("click", function () {
+    if (!lastEmployeeData || !lastPredictionResult) {
+        saveSuccess.textContent = "";
+        formError.textContent = "Please predict your salary first.";
+        return;
+    }
+
+    const profiles = loadSavedProfiles();
+    const newProfile = {
+        id: `p_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        name: `${lastEmployeeData.occupation} · ${lastEmployeeData.country}`,
+        savedAt: new Date().toISOString(),
+        employee: lastEmployeeData,
+        prediction: lastPredictionResult,
+        selected: false,
+    };
+
+    profiles.unshift(newProfile);
+    // Cap the list so local storage doesn't grow without bound
+    const trimmed = profiles.slice(0, MAX_SAVED_PROFILES);
+    persistSavedProfiles(trimmed);
+    renderSavedProfiles();
+
+    saveProfileBtn.classList.add("saved");
+    saveProfileLabel.textContent = "Saved ✓";
+    saveSuccess.textContent = "Profile saved below — scroll down to compare it with others.";
+});
+
+compareBtn.addEventListener("click", function () {
+    buildCompareTable();
+});
+
+function buildCompareTable() {
+    const selected = loadSavedProfiles().filter(p => p.selected);
+
+    if (selected.length < 2) {
+        compareTableWrap.classList.add("hidden");
+        compareTable.innerHTML = "";
+        return;
+    }
+
+    const rows = [
+        { label: "Predicted salary", get: p => formatCurrency(p.prediction.predicted_salary), cls: "salary-cell" },
+        { label: "Estimated range", get: p => `${formatCurrency(p.prediction.salary_range.minimum)} – ${formatCurrency(p.prediction.salary_range.maximum)}` },
+        { label: "Occupation", get: p => p.employee.occupation },
+        { label: "Country", get: p => p.employee.country },
+        { label: "Industry", get: p => p.employee.industry },
+        { label: "Education", get: p => p.employee.education_level },
+        { label: "Experience", get: p => `${p.employee.years_of_experience} yrs` },
+        { label: "Hours / week", get: p => p.employee.hours_per_week },
+        { label: "Experience level", get: p => p.prediction.experience_level },
+        { label: "Salary position", get: p => p.prediction.salary_insight },
+    ];
+
+    const maxSalary = Math.max(...selected.map(p => p.prediction.predicted_salary));
+
+    let html = "<thead><tr><th>Metric</th>";
+    selected.forEach(p => (html += `<th>${escapeHtml(p.name)}</th>`));
+    html += "</tr></thead><tbody>";
+
+    rows.forEach(row => {
+        html += `<tr><td class="metric-label">${row.label}</td>`;
+        selected.forEach(p => {
+            const isBestSalary = row.cls === "salary-cell" && p.prediction.predicted_salary === maxSalary && selected.length > 1;
+            const cellClass = isBestSalary ? "best-cell" : (row.cls || "");
+            html += `<td class="${cellClass}">${escapeHtml(row.get(p))}</td>`;
+        });
+        html += "</tr>";
+    });
+    html += "</tbody>";
+
+    compareTable.innerHTML = html;
+    compareTableWrap.classList.remove("hidden");
+}
+
+// Render any previously saved profiles as soon as the page loads
+renderSavedProfiles();

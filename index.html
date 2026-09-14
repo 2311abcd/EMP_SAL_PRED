@@ -76,14 +76,29 @@
                     <select id="occupation" name="occupation" required>
                         <option value="Software Engineer">Software Engineer</option>
                         <option value="Data Analyst">Data Analyst</option>
+                        <option value="Data Scientist">Data Scientist</option>
+                        <option value="DevOps Engineer">DevOps Engineer</option>
                         <option value="Sales Executive">Sales Executive</option>
                         <option value="Marketing Manager">Marketing Manager</option>
                         <option value="HR Specialist">HR Specialist</option>
                         <option value="Financial Analyst">Financial Analyst</option>
+                        <option value="Accountant">Accountant</option>
                         <option value="Product Manager">Product Manager</option>
+                        <option value="Project Manager">Project Manager</option>
+                        <option value="Business Analyst">Business Analyst</option>
                         <option value="Mechanical Engineer">Mechanical Engineer</option>
+                        <option value="Civil Engineer">Civil Engineer</option>
+                        <option value="Electrical Engineer">Electrical Engineer</option>
                         <option value="Customer Support">Customer Support</option>
                         <option value="Operations Manager">Operations Manager</option>
+                        <option value="UX Designer">UX Designer</option>
+                        <option value="Graphic Designer">Graphic Designer</option>
+                        <option value="Content Writer">Content Writer</option>
+                        <option value="Legal Counsel">Legal Counsel</option>
+                        <option value="Research Scientist">Research Scientist</option>
+                        <option value="Registered Nurse">Registered Nurse</option>
+                        <option value="Teacher">Teacher</option>
+                        <option value="Network Administrator">Network Administrator</option>
                     </select>
                 </div>
 
@@ -97,6 +112,16 @@
                             <option value="Canada">Canada</option>
                             <option value="Germany">Germany</option>
                             <option value="Australia">Australia</option>
+                            <option value="France">France</option>
+                            <option value="Netherlands">Netherlands</option>
+                            <option value="Ireland">Ireland</option>
+                            <option value="Singapore">Singapore</option>
+                            <option value="UAE">UAE</option>
+                            <option value="Japan">Japan</option>
+                            <option value="Brazil">Brazil</option>
+                            <option value="South Africa">South Africa</option>
+                            <option value="New Zealand">New Zealand</option>
+                            <option value="Mexico">Mexico</option>
                         </select>
                     </div>
                     <div class="field">
@@ -108,6 +133,14 @@
                             <option value="Retail">Retail</option>
                             <option value="Manufacturing">Manufacturing</option>
                             <option value="Education">Education</option>
+                            <option value="Telecommunications">Telecommunications</option>
+                            <option value="Energy">Energy</option>
+                            <option value="Government">Government</option>
+                            <option value="Media & Entertainment">Media &amp; Entertainment</option>
+                            <option value="Real Estate">Real Estate</option>
+                            <option value="Hospitality">Hospitality</option>
+                            <option value="Automotive">Automotive</option>
+                            <option value="Pharmaceuticals">Pharmaceuticals</option>
                         </select>
                     </div>
                 </div>
@@ -154,10 +187,16 @@
                 </div>
                 <p class="career-insight-text" id="career-insight-text"></p>
 
-                <button type="button" id="download-report-btn" class="btn-download">
-                    <span id="download-report-label">Download PDF report</span>
-                </button>
+                <div class="action-row">
+                    <button type="button" id="download-report-btn" class="btn-download">
+                        <span id="download-report-label">Download PDF report</span>
+                    </button>
+                    <button type="button" id="save-profile-btn" class="btn-download btn-save">
+                        <span id="save-profile-label">Save this profile</span>
+                    </button>
+                </div>
                 <p class="form-error" id="report-error"></p>
+                <p class="form-success" id="save-success"></p>
 
                 <!-- What-If simulator -->
                 <div class="whatif-section glass">
@@ -205,6 +244,29 @@
             </div>
         </section>
     </main>
+
+    <!-- ===================== SAVED PROFILES / COMPARE ===================== -->
+    <section class="saved-section glass" aria-label="Saved profiles">
+        <div class="saved-header">
+            <div>
+                <h2>Saved profiles</h2>
+                <p class="panel-hint">Saved to this browser only (local storage) — predict a profile, then click "Save this profile" to add it here. Select two or more to compare.</p>
+            </div>
+            <button type="button" id="compare-btn" class="btn-secondary" disabled>
+                <span>Compare selected</span>
+            </button>
+        </div>
+
+        <div id="saved-empty" class="saved-empty">No saved profiles yet. Predict a salary and save it to start building your list.</div>
+        <div id="saved-list" class="saved-list"></div>
+
+        <div id="compare-table-wrap" class="compare-table-wrap hidden">
+            <h3>Comparison</h3>
+            <div class="compare-table-scroll">
+                <table id="compare-table" class="compare-table"></table>
+            </div>
+        </div>
+    </section>
 
     <footer class="site-footer">
         <p>Predictions are model-based estimates from a trained regression pipeline, not guarantees of actual pay.</p>

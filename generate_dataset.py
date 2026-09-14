@@ -35,20 +35,39 @@ import pandas as pd
 # Fix the random seed so the dataset is the same every time we generate it
 np.random.seed(42)
 
-NUM_RECORDS = 6000
+NUM_RECORDS = 12000
 
 # ---------------------------------------------------------------
 # Step 1: Define the possible categories for each categorical column
 # ---------------------------------------------------------------
+# NOTE ON COVERAGE (Sep 2026 update): expanded from the original 10
+# occupations / 6 countries / 6 industries to a much broader set so the
+# model and the What-If simulator generalize to more real-world profiles.
 education_levels = ["High School", "Bachelor's", "Master's", "PhD"]
+
 occupations = [
-    "Software Engineer", "Data Analyst", "Sales Executive", "Marketing Manager",
-    "HR Specialist", "Financial Analyst", "Product Manager", "Mechanical Engineer",
-    "Customer Support", "Operations Manager"
+    "Software Engineer", "Data Analyst", "Data Scientist", "DevOps Engineer",
+    "Sales Executive", "Marketing Manager", "HR Specialist", "Financial Analyst",
+    "Accountant", "Product Manager", "Project Manager", "Business Analyst",
+    "Mechanical Engineer", "Civil Engineer", "Electrical Engineer",
+    "Customer Support", "Operations Manager", "UX Designer", "Graphic Designer",
+    "Content Writer", "Legal Counsel", "Research Scientist", "Registered Nurse",
+    "Teacher", "Network Administrator",
 ]
+
 genders = ["Male", "Female", "Other"]
-countries = ["USA", "India", "UK", "Canada", "Germany", "Australia"]
-industries = ["Technology", "Finance", "Healthcare", "Retail", "Manufacturing", "Education"]
+
+countries = [
+    "USA", "India", "UK", "Canada", "Germany", "Australia",
+    "France", "Netherlands", "Ireland", "Singapore", "UAE", "Japan",
+    "Brazil", "South Africa", "New Zealand", "Mexico",
+]
+
+industries = [
+    "Technology", "Finance", "Healthcare", "Retail", "Manufacturing", "Education",
+    "Telecommunications", "Energy", "Government", "Media & Entertainment",
+    "Real Estate", "Hospitality", "Automotive", "Pharmaceuticals",
+]
 
 # ---------------------------------------------------------------
 # Step 2: Define base salary effect for each category
@@ -57,17 +76,31 @@ industries = ["Technology", "Finance", "Healthcare", "Retail", "Manufacturing", 
 education_multiplier = {"High School": 1.0, "Bachelor's": 1.3, "Master's": 1.55, "PhD": 1.8}
 
 occupation_base_pay = {
-    "Software Engineer": 45000, "Data Analyst": 38000, "Sales Executive": 32000,
-    "Marketing Manager": 40000, "HR Specialist": 30000, "Financial Analyst": 42000,
-    "Product Manager": 48000, "Mechanical Engineer": 36000, "Customer Support": 26000,
-    "Operations Manager": 34000
+    "Software Engineer": 45000, "Data Analyst": 38000, "Data Scientist": 50000,
+    "DevOps Engineer": 47000, "Sales Executive": 32000, "Marketing Manager": 40000,
+    "HR Specialist": 30000, "Financial Analyst": 42000, "Accountant": 34000,
+    "Product Manager": 48000, "Project Manager": 41000, "Business Analyst": 37000,
+    "Mechanical Engineer": 36000, "Civil Engineer": 35000, "Electrical Engineer": 37000,
+    "Customer Support": 26000, "Operations Manager": 34000, "UX Designer": 39000,
+    "Graphic Designer": 30000, "Content Writer": 27000, "Legal Counsel": 55000,
+    "Research Scientist": 46000, "Registered Nurse": 33000, "Teacher": 28000,
+    "Network Administrator": 33000,
 }
 
-country_multiplier = {"USA": 1.5, "UK": 1.3, "Canada": 1.25, "Australia": 1.3,
-                       "Germany": 1.2, "India": 0.5}
+country_multiplier = {
+    "USA": 1.5, "UK": 1.3, "Canada": 1.25, "Australia": 1.3, "Germany": 1.2,
+    "India": 0.5, "France": 1.15, "Netherlands": 1.28, "Ireland": 1.22,
+    "Singapore": 1.35, "UAE": 1.18, "Japan": 1.1, "Brazil": 0.55,
+    "South Africa": 0.45, "New Zealand": 1.2, "Mexico": 0.5,
+}
 
-industry_multiplier = {"Technology": 1.3, "Finance": 1.25, "Healthcare": 1.15,
-                        "Retail": 0.9, "Manufacturing": 1.0, "Education": 0.85}
+industry_multiplier = {
+    "Technology": 1.3, "Finance": 1.25, "Healthcare": 1.15, "Retail": 0.9,
+    "Manufacturing": 1.0, "Education": 0.85, "Telecommunications": 1.12,
+    "Energy": 1.2, "Government": 0.95, "Media & Entertainment": 1.05,
+    "Real Estate": 1.08, "Hospitality": 0.88, "Automotive": 1.02,
+    "Pharmaceuticals": 1.22,
+}
 
 # ---------------------------------------------------------------
 # Step 3: Randomly generate employee records
@@ -118,10 +151,10 @@ df = pd.DataFrame(rows)
 # so that train_model.py has real preprocessing work to do
 # (this mimics a messy real-world dataset)
 # ---------------------------------------------------------------
-missing_idx = np.random.choice(df.index, size=40, replace=False)
+missing_idx = np.random.choice(df.index, size=80, replace=False)
 df.loc[missing_idx, "hours_per_week"] = np.nan
 
-duplicate_rows = df.sample(15, random_state=1)
+duplicate_rows = df.sample(30, random_state=1)
 df = pd.concat([df, duplicate_rows], ignore_index=True)
 
 df.to_csv("dataset.csv", index=False)

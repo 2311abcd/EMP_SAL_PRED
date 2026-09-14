@@ -23,7 +23,9 @@ Run with:
 
 import io
 import json
+import logging
 from datetime import datetime
+from xml.sax.saxutils import escape as xml_escape
 
 import joblib
 import pandas as pd
@@ -31,6 +33,9 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse, FileResponse, StreamingResponse
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("salary-app")
 
 # reportlab is used only to build the downloadable PDF report.
 from reportlab.lib.pagesizes import letter
@@ -66,13 +71,25 @@ REFERENCE_VALUES = model_metrics["reference_values"]
 # of a confusing internal server error if they send an unknown category.
 VALID_EDUCATION_LEVELS = ["High School", "Bachelor's", "Master's", "PhD"]
 VALID_OCCUPATIONS = [
-    "Software Engineer", "Data Analyst", "Sales Executive", "Marketing Manager",
-    "HR Specialist", "Financial Analyst", "Product Manager", "Mechanical Engineer",
-    "Customer Support", "Operations Manager"
+    "Software Engineer", "Data Analyst", "Data Scientist", "DevOps Engineer",
+    "Sales Executive", "Marketing Manager", "HR Specialist", "Financial Analyst",
+    "Accountant", "Product Manager", "Project Manager", "Business Analyst",
+    "Mechanical Engineer", "Civil Engineer", "Electrical Engineer",
+    "Customer Support", "Operations Manager", "UX Designer", "Graphic Designer",
+    "Content Writer", "Legal Counsel", "Research Scientist", "Registered Nurse",
+    "Teacher", "Network Administrator",
 ]
 VALID_GENDERS = ["Male", "Female", "Other"]
-VALID_COUNTRIES = ["USA", "India", "UK", "Canada", "Germany", "Australia"]
-VALID_INDUSTRIES = ["Technology", "Finance", "Healthcare", "Retail", "Manufacturing", "Education"]
+VALID_COUNTRIES = [
+    "USA", "India", "UK", "Canada", "Germany", "Australia",
+    "France", "Netherlands", "Ireland", "Singapore", "UAE", "Japan",
+    "Brazil", "South Africa", "New Zealand", "Mexico",
+]
+VALID_INDUSTRIES = [
+    "Technology", "Finance", "Healthcare", "Retail", "Manufacturing", "Education",
+    "Telecommunications", "Energy", "Government", "Media & Entertainment",
+    "Real Estate", "Hospitality", "Automotive", "Pharmaceuticals",
+]
 
 
 app = FastAPI(
@@ -155,6 +172,14 @@ def employee_to_dataframe(employee: EmployeeData) -> pd.DataFrame:
     Converts a validated EmployeeData object into a single-row Pandas DataFrame
     with EXACTLY the same column names and order used during training.
     This is the key step that prevents "feature mismatch" errors.
+
+    Numeric columns are explicitly cast to float64. Without this, a column
+    built from an all-int value (e.g. "age") stays int64, and later trying
+    to write a float "typical" reference value into it (see
+    compute_personalized_factors below) raises a pandas
+    `LossySetitemError` / `TypeError: Invalid value ... for dtype 'int64'`
+    on modern pandas (2.x/3.x with strict setitem casting). This one-line
+    cast prevents that whole class of bug up front.
     """
     row = {
         "age": employee.age,
@@ -166,7 +191,10 @@ def employee_to_dataframe(employee: EmployeeData) -> pd.DataFrame:
         "country": employee.country,
         "industry": employee.industry,
     }
-    return pd.DataFrame([row], columns=FEATURE_COLUMNS)
+    df = pd.DataFrame([row], columns=FEATURE_COLUMNS)
+    for numeric_col in NUMERIC_FEATURES:
+        df[numeric_col] = df[numeric_col].astype("float64")
+    return df
 
 
 def predict_salary(employee: EmployeeData) -> float:
@@ -206,7 +234,10 @@ def compute_personalized_factors(employee: EmployeeData, predicted_salary: float
 
     for feature in FEATURE_COLUMNS:
         modified_row = base_row.copy()
-        modified_row.at[0, feature] = REFERENCE_VALUES[feature]
+        # .loc (not .at) plus the float64 cast in employee_to_dataframe
+        # keeps this assignment safe even when REFERENCE_VALUES[feature] is
+        # a float being written into what used to be an int-only column.
+        modified_row.loc[0, feature] = REFERENCE_VALUES[feature]
 
         neutral_prediction = float(model_pipeline.predict(modified_row)[0])
         impact = round(predicted_salary - neutral_prediction, 2)
@@ -315,6 +346,24 @@ def generate_pdf_report(
     body_style = ParagraphStyle("Body", parent=styles["Normal"], leading=15)
     muted_style = ParagraphStyle("Muted", parent=styles["Normal"], textColor=colors.grey, fontSize=9)
 
+    # ---- Small helper: cell(text) ----
+    # IMPORTANT BUG FIX (was causing "/generate-report" to fail with a 500
+    # error): reportlab's Paragraph treats its text as a small XML-like
+    # markup language. Any raw employee/category value that happens to
+    # contain a special character such as "&", "<" or ">" (e.g. an
+    # industry like "Media & Entertainment") would crash Paragraph parsing
+    # and abort PDF generation entirely. Every dynamic piece of text is now
+    # escaped with xml_escape() before it reaches a Paragraph, and table
+    # cells use Paragraph objects (instead of raw strings) so long values
+    # wrap cleanly instead of overflowing the page.
+    def cell(text, style=None):
+        return Paragraph(xml_escape(str(text)), style or body_style)
+
+    cell_style = ParagraphStyle("Cell", parent=styles["Normal"], fontSize=10, leading=13)
+    header_cell_style = ParagraphStyle(
+        "HeaderCell", parent=cell_style, fontName="Helvetica-Bold", textColor=colors.white
+    )
+
     story = []
 
     # ---- Header ----
@@ -329,14 +378,14 @@ def generate_pdf_report(
     # ---- Employee profile table ----
     story.append(Paragraph("Employee Profile", heading_style))
     profile_rows = [
-        ["Age", str(employee.age)],
-        ["Education Level", employee.education_level],
-        ["Occupation", employee.occupation],
-        ["Years of Experience", f"{employee.years_of_experience}"],
-        ["Hours per Week", f"{employee.hours_per_week}"],
-        ["Gender", employee.gender],
-        ["Country", employee.country],
-        ["Industry", employee.industry],
+        ["Age", cell(employee.age)],
+        ["Education Level", cell(employee.education_level)],
+        ["Occupation", cell(employee.occupation)],
+        ["Years of Experience", cell(employee.years_of_experience)],
+        ["Hours per Week", cell(employee.hours_per_week)],
+        ["Gender", cell(employee.gender)],
+        ["Country", cell(employee.country)],
+        ["Industry", cell(employee.industry)],
     ]
     profile_table = Table(profile_rows, colWidths=[6 * cm, 9 * cm])
     profile_table.setStyle(TableStyle([
@@ -352,10 +401,10 @@ def generate_pdf_report(
     # ---- Prediction results ----
     story.append(Paragraph("Prediction Results", heading_style))
     result_rows = [
-        ["Estimated Annual Salary", f"${predicted_salary:,.2f}"],
-        ["Estimated Range", f"${salary_range['minimum']:,.2f} - ${salary_range['maximum']:,.2f}"],
-        ["Experience Level", experience_level],
-        ["Salary Position", salary_insight["position"]],
+        ["Estimated Annual Salary", cell(f"${predicted_salary:,.2f}")],
+        ["Estimated Range", cell(f"${salary_range['minimum']:,.2f} - ${salary_range['maximum']:,.2f}")],
+        ["Experience Level", cell(experience_level)],
+        ["Salary Position", cell(salary_insight["position"])],
     ]
     result_table = Table(result_rows, colWidths=[6 * cm, 9 * cm])
     result_table.setStyle(TableStyle([
@@ -373,7 +422,7 @@ def generate_pdf_report(
 
     # ---- Career insight ----
     story.append(Paragraph("Career Insight", heading_style))
-    story.append(Paragraph(career_insight_text, body_style))
+    story.append(Paragraph(xml_escape(career_insight_text), body_style))
 
     # ---- Feature importance (personalized to THIS profile) ----
     if personalized_factors:
@@ -384,17 +433,21 @@ def generate_pdf_report(
             muted_style,
         ))
         story.append(Spacer(1, 6))
-        factor_rows = [["#", "Factor", "Your Value", "Impact"]]
+        factor_rows = [[
+            cell("#", header_cell_style), cell("Factor", header_cell_style),
+            cell("Your Value", header_cell_style), cell("Impact", header_cell_style),
+        ]]
         for i, factor in enumerate(personalized_factors, start=1):
             factor_name = factor["feature"].replace("_", " ").title()
             sign = "+" if factor["impact"] >= 0 else "-"
             impact_text = f"{sign}${abs(factor['impact']):,.0f}"
-            factor_rows.append([str(i), factor_name, factor["your_value"], impact_text])
+            factor_rows.append([
+                cell(i, cell_style), cell(factor_name, cell_style),
+                cell(factor["your_value"], cell_style), cell(impact_text, cell_style),
+            ])
         factor_table = Table(factor_rows, colWidths=[1 * cm, 5.5 * cm, 4.5 * cm, 4 * cm])
         factor_table.setStyle(TableStyle([
             ("FONTSIZE", (0, 0), (-1, -1), 9.5),
-            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
             ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1B4332")),
             ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
             ("TOPPADDING", (0, 0), (-1, -1), 6),
@@ -516,6 +569,7 @@ def generate_report(employee: EmployeeData):
             headers={"Content-Disposition": "attachment; filename=salary_prediction_report.pdf"},
         )
     except Exception as error:
+        logger.exception("PDF report generation failed")
         raise HTTPException(status_code=500, detail=f"Report generation failed: {str(error)}")
 
 

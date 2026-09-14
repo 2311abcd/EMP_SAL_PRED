@@ -540,6 +540,174 @@ input:focus, select:focus {
     font-family: 'Space Grotesk', sans-serif;
 }
 
+/* ---------------------------- ACTION ROW / SAVE BUTTON ---------------------------- */
+
+.action-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 2px;
+}
+
+@media (max-width: 480px) {
+    .action-row { grid-template-columns: 1fr; }
+}
+
+.btn-save::before { content: "☆"; color: var(--gold); }
+
+.btn-save.saved {
+    border-color: var(--gold);
+    color: var(--gold);
+    background: rgba(242, 184, 75, 0.08);
+}
+
+.btn-save.saved::before { content: "★"; }
+
+.form-success {
+    color: var(--positive);
+    font-size: 0.85rem;
+    margin: 8px 0 0;
+    min-height: 1em;
+}
+
+/* ---------------------------- SAVED PROFILES / COMPARE ---------------------------- */
+
+.saved-section {
+    max-width: 1180px;
+    margin: 0 auto 48px;
+    padding: 28px;
+}
+
+.saved-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.saved-header h2 { font-size: 1.3rem; margin-bottom: 4px; }
+
+.saved-header .btn-secondary:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.saved-empty {
+    color: var(--text-faint);
+    font-size: 0.9rem;
+    padding: 20px 0 4px;
+}
+
+.saved-list {
+    margin-top: 18px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 14px;
+}
+
+.saved-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.03);
+    padding: 16px 16px 14px;
+    position: relative;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.saved-card:hover { border-color: var(--border-strong); }
+
+.saved-card.selected {
+    border-color: var(--violet);
+    background: var(--violet-soft);
+}
+
+.saved-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.saved-card-name {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 0.98rem;
+    color: var(--text);
+}
+
+.saved-card-salary {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 1.3rem;
+    color: var(--gold);
+    margin: 10px 0 4px;
+}
+
+.saved-card-meta {
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    line-height: 1.5;
+}
+
+.saved-card-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--border);
+}
+
+.saved-card-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.saved-card-remove {
+    background: none;
+    border: none;
+    color: var(--text-faint);
+    font-size: 0.78rem;
+    cursor: pointer;
+    padding: 4px 6px;
+    transition: color 0.15s ease;
+}
+
+.saved-card-remove:hover { color: var(--negative); }
+
+.compare-table-wrap { margin-top: 28px; }
+
+.compare-table-wrap h3 { font-size: 1.1rem; margin-bottom: 14px; }
+
+.compare-table-scroll { overflow-x: auto; }
+
+.compare-table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 480px;
+    font-size: 0.88rem;
+}
+
+.compare-table th, .compare-table td {
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+}
+
+.compare-table th {
+    color: var(--text-muted);
+    font-weight: 600;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.8rem;
+}
+
+.compare-table td.metric-label { color: var(--text-muted); font-weight: 500; }
+.compare-table td.salary-cell { color: var(--gold); font-weight: 700; font-family: 'Space Grotesk', sans-serif; }
+.compare-table td.best-cell { color: var(--positive); font-weight: 700; }
+
 /* ---------------------------- FOOTER ---------------------------- */
 
 .site-footer {
