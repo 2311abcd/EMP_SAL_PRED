@@ -1,0 +1,22 @@
+pandas>=2.0.0
+numpy>=1.24.0
+scikit-learn>=1.3.0
+joblib>=1.3.0
+fastapi>=0.104.0
+pydantic>=2.4.0
+uvicorn>=0.23.0
+reportlab>=4.0.0
+
+# NOTE ON VERSIONS:
+# best_model.pkl is a pickled scikit-learn Pipeline. Pickle files are only
+# guaranteed to load correctly on the SAME scikit-learn (and often numpy)
+# major/minor version that created them. If you ever see an error like
+# "InconsistentVersionWarning" or "not a known BitGenerator" when starting
+# the server, it means best_model.pkl was created with a different
+# scikit-learn version than the one currently installed.
+#
+# FIX: simply regenerate the model in your current environment:
+#     python generate_dataset.py
+#     python train_model.py
+# This retrains and re-saves best_model.pkl using YOUR installed versions,
+# which permanently resolves the mismatch.

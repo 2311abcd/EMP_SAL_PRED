@@ -1,0 +1,80 @@
+{
+    "best_model_name": "Gradient Boosting",
+    "all_model_results": {
+        "Linear Regression": {
+            "MAE": 10999.17,
+            "RMSE": 14547.83,
+            "R2 Score": 0.9082
+        },
+        "Random Forest": {
+            "MAE": 9658.3,
+            "RMSE": 13073.05,
+            "R2 Score": 0.9258
+        },
+        "Gradient Boosting": {
+            "MAE": 9459.26,
+            "RMSE": 12759.55,
+            "R2 Score": 0.9294
+        }
+    },
+    "numeric_features": [
+        "age",
+        "years_of_experience",
+        "hours_per_week"
+    ],
+    "categorical_features": [
+        "education_level",
+        "occupation",
+        "gender",
+        "country",
+        "industry"
+    ],
+    "feature_importance": [
+        {
+            "feature": "country",
+            "importance": 0.5201
+        },
+        {
+            "feature": "education_level",
+            "importance": 0.2261
+        },
+        {
+            "feature": "industry",
+            "importance": 0.1852
+        },
+        {
+            "feature": "occupation",
+            "importance": 0.0504
+        },
+        {
+            "feature": "years_of_experience",
+            "importance": 0.0101
+        },
+        {
+            "feature": "hours_per_week",
+            "importance": 0.0073
+        },
+        {
+            "feature": "age",
+            "importance": 0.0007
+        },
+        {
+            "feature": "gender",
+            "importance": 0.0001
+        }
+    ],
+    "residual_std": 12759.02,
+    "average_salary": 125018.01,
+    "reference_values": {
+        "age": 37.77,
+        "years_of_experience": 9.89,
+        "hours_per_week": 42.01,
+        "education_level": "Bachelor's",
+        "occupation": "Financial Analyst",
+        "gender": "Male",
+        "country": "Canada",
+        "industry": "Manufacturing"
+    },
+    "training_rows": 4762,
+    "testing_rows": 1191
+}

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Salary Prediction &amp; Career Insights</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- Ambient animated background -->
+    <div class="bg-mesh" aria-hidden="true"></div>
+
+    <!-- ===================== HEADER ===================== -->
+    <header class="site-header">
+        <div class="header-inner">
+            <p class="header-kicker">Salary intelligence for individuals</p>
+            <h1>Employee Salary Prediction<br><span>&amp; Career Insights</span></h1>
+            <p class="header-subtitle">Predict your estimated salary and explore what could change it — powered by a live, trained ML model.</p>
+        </div>
+    </header>
+
+    <!-- ===================== MAIN LAYOUT ===================== -->
+    <main class="layout">
+
+        <!-- ---------- LEFT: FORM ---------- -->
+        <section class="form-panel glass" aria-label="Employee information form">
+            <h2>Your profile</h2>
+            <p class="panel-hint">Fill in your details. Nothing here is stored — every prediction runs fresh through the trained model.</p>
+
+            <form id="employee-form" novalidate>
+
+                <div class="field-row">
+                    <div class="field">
+                        <label for="age">Age</label>
+                        <input type="number" id="age" name="age" min="18" max="70" value="30" required>
+                        <span class="field-error" id="error-age"></span>
+                    </div>
+                    <div class="field">
+                        <label for="years_of_experience">Years of experience</label>
+                        <input type="number" id="years_of_experience" name="years_of_experience" min="0" max="50" step="0.5" value="5" required>
+                        <span class="field-error" id="error-years_of_experience"></span>
+                    </div>
+                </div>
+
+                <div class="field-row">
+                    <div class="field">
+                        <label for="hours_per_week">Hours worked per week</label>
+                        <input type="number" id="hours_per_week" name="hours_per_week" min="1" max="100" step="1" value="40" required>
+                        <span class="field-error" id="error-hours_per_week"></span>
+                    </div>
+                    <div class="field">
+                        <label for="gender">Gender</label>
+                        <select id="gender" name="gender" required>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label for="education_level">Education level</label>
+                    <select id="education_level" name="education_level" required>
+                        <option value="High School">High School</option>
+                        <option value="Bachelor's" selected>Bachelor's</option>
+                        <option value="Master's">Master's</option>
+                        <option value="PhD">PhD</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label for="occupation">Occupation</label>
+                    <select id="occupation" name="occupation" required>
+                        <option value="Software Engineer">Software Engineer</option>
+                        <option value="Data Analyst">Data Analyst</option>
+                        <option value="Sales Executive">Sales Executive</option>
+                        <option value="Marketing Manager">Marketing Manager</option>
+                        <option value="HR Specialist">HR Specialist</option>
+                        <option value="Financial Analyst">Financial Analyst</option>
+                        <option value="Product Manager">Product Manager</option>
+                        <option value="Mechanical Engineer">Mechanical Engineer</option>
+                        <option value="Customer Support">Customer Support</option>
+                        <option value="Operations Manager">Operations Manager</option>
+                    </select>
+                </div>
+
+                <div class="field-row">
+                    <div class="field">
+                        <label for="country">Country</label>
+                        <select id="country" name="country" required>
+                            <option value="USA">USA</option>
+                            <option value="India">India</option>
+                            <option value="UK">UK</option>
+                            <option value="Canada">Canada</option>
+                            <option value="Germany">Germany</option>
+                            <option value="Australia">Australia</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="industry">Industry</label>
+                        <select id="industry" name="industry" required>
+                            <option value="Technology">Technology</option>
+                            <option value="Finance">Finance</option>
+                            <option value="Healthcare">Healthcare</option>
+                            <option value="Retail">Retail</option>
+                            <option value="Manufacturing">Manufacturing</option>
+                            <option value="Education">Education</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button type="submit" id="predict-btn" class="btn-primary">
+                    <span>Predict my salary</span>
+                </button>
+                <p class="form-error" id="form-error"></p>
+            </form>
+        </section>
+
+        <!-- ---------- RIGHT: RESULTS ---------- -->
+        <section class="results-panel" aria-label="Prediction results">
+
+            <div id="empty-state" class="empty-state glass">
+                <div class="empty-icon">◆</div>
+                <p>Your prediction will appear here once you submit your profile.</p>
+            </div>
+
+            <div id="loading-state" class="loading-state glass hidden">
+                <div class="spinner"></div>
+                <p>Running your profile through the model…</p>
+            </div>
+
+            <div id="results" class="results hidden">
+
+                <!-- Predicted salary -->
+                <div class="result-hero glass">
+                    <p class="result-label">Estimated annual salary</p>
+                    <p class="result-number"><span id="predicted-salary">$0</span></p>
+                    <p class="result-range" id="salary-range"></p>
+                </div>
+
+                <!-- Career insights -->
+                <div class="insight-grid">
+                    <div class="insight-box glass">
+                        <p class="insight-label">Experience level</p>
+                        <p class="insight-value" id="experience-level">—</p>
+                    </div>
+                    <div class="insight-box glass">
+                        <p class="insight-label">Salary position</p>
+                        <p class="insight-value" id="salary-position">—</p>
+                    </div>
+                </div>
+                <p class="career-insight-text" id="career-insight-text"></p>
+
+                <button type="button" id="download-report-btn" class="btn-download">
+                    <span id="download-report-label">Download PDF report</span>
+                </button>
+                <p class="form-error" id="report-error"></p>
+
+                <!-- What-If simulator -->
+                <div class="whatif-section glass">
+                    <h3>What-if simulator</h3>
+                    <p class="panel-hint">See how a change to your profile could move your predicted salary. This runs your modified profile through the same trained model — nothing here is guessed.</p>
+
+                    <div class="whatif-controls">
+                        <div class="field">
+                            <label for="whatif-experience">Add years of experience</label>
+                            <input type="number" id="whatif-experience" value="2" min="-20" max="30" step="0.5">
+                        </div>
+                        <div class="field">
+                            <label for="whatif-hours">Change hours per week</label>
+                            <input type="number" id="whatif-hours" value="0" min="-30" max="30" step="1">
+                        </div>
+                        <button type="button" id="whatif-btn" class="btn-secondary">
+                            <span>Analyze salary growth</span>
+                        </button>
+                    </div>
+
+                    <div id="whatif-results" class="whatif-results hidden">
+                        <div class="whatif-row">
+                            <span>Current prediction</span>
+                            <strong id="whatif-current">$0</strong>
+                        </div>
+                        <div class="whatif-row">
+                            <span>New prediction</span>
+                            <strong id="whatif-new">$0</strong>
+                        </div>
+                        <div class="whatif-row highlight">
+                            <span>Potential difference</span>
+                            <strong id="whatif-diff">$0</strong>
+                        </div>
+                        <p class="whatif-explanation" id="whatif-explanation"></p>
+                    </div>
+                </div>
+
+                <!-- Feature importance -->
+                <div class="importance-section glass">
+                    <h3>Top factors affecting your salary</h3>
+                    <p class="panel-hint">Calculated specifically for your profile — change any field above and these update too. Each bar shows the real dollar effect of your value vs. a typical profile in the training data.</p>
+                    <div id="importance-list" class="importance-list"></div>
+                </div>
+
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <p>Predictions are model-based estimates from a trained regression pipeline, not guarantees of actual pay.</p>
+    </footer>
+
+    <script src="/script.js"></script>
+</body>
+</html>
